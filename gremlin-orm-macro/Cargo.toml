@@ -1,0 +1,23 @@
+[package]
+name = "gremlin-orm-macro"
+description = "A lightweight, ORM for PostgreSQL, built on top of SQLx."
+homepage = "https://github.com/nils-degroot/gremlin-orm"
+repository = "https://github.com/nils-degroot/gremlin-orm"
+readme = "../README.md"
+authors = ["Nils de Groot <nils@peeko.nl>"]
+version = "0.1.0"
+edition = "2024"
+license-file = "../LICENSE"
+keywords = ["database"]
+categories = ["database"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2.0.100"
+quote = "1.0.40"
+proc-macro2 = "1.0.94"
+darling = "0.21.0"
+thiserror = "2.0.12"
+proc-macro-error2 = "2.0.1"

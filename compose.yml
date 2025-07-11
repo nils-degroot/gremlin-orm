@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17.5
+    volumes:
+      - database:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: sample
+      POSTGRES_PASSWORD: sample
+      POSTGRES_DB: sample
+    healthcheck:
+      test: "/usr/bin/pg_isready"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 5432:5432
+
+  data:
+    image: postgres:17.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./resources/data/:/data
+    environment:
+      PGUSER: sample
+      PGPASSWORD: sample
+      PGDATABASE: sample
+      PGHOST: postgres
+    entrypoint: >
+      /bin/sh -c '
+        psql -f /data/schema.sql
+      '
+
+volumes:
+  database:
