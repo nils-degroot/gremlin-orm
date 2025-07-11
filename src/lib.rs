@@ -1,14 +1,25 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+//! # `evil-orm-core`
+
+/// Trait for entities that can be inserted
+pub trait InsertableEntity {
+    /// Entity related to the insertable entity
+    type SourceEntity;
+
+    /// Insert the entity, returning either [`Self::SourceEntity`] or an error
+    fn insert(
+        &self,
+        pool: &sqlx::PgPool,
+    ) -> impl Future<Output = Result<Self::SourceEntity, sqlx::Error>>;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Trait for entities that can be updated
+pub trait UpdatableEntity {
+    /// Entity related to the updatable entity
+    type SourceEntity;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    /// Insert the entity, returning either [`Self::SourceEntity`] or an error
+    fn update(
+        &self,
+        pool: &sqlx::PgPool,
+    ) -> impl Future<Output = Result<Self::SourceEntity, sqlx::Error>>;
 }
