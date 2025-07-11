@@ -3,6 +3,13 @@ name = "evil-orm"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+resolver = "2"
+members = [
+	".",
+	"./evil-orm-macro/"
+]
+
 [dependencies]
-sqlx = "0.8.6"
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
 evil-orm-macro = { path = "./evil-orm-macro/" }

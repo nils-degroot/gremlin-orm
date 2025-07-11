@@ -1,4 +1,6 @@
-//! # `evil-orm-core`
+//! # `evil-orm`
+
+pub use evil_orm_macro::Entity;
 
 /// Trait for entities that can be inserted
 pub trait InsertableEntity {
