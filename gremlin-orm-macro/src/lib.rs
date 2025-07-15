@@ -28,13 +28,14 @@ fn generate(args: DeriveInput) -> Result<TokenStream, GeneratorError> {
     let args: EntityArgs = EntityArgs::from_derive_input(&args)?;
     let ident = args.ident.clone();
 
-    let args = if let Ok(v) = EntityCtx::try_from(args) {
-        v
-    } else {
-        abort!(
-            ident,
-            "The `Entity` macro can only be applied to a struct with named fields"
-        )
+    let args = match EntityCtx::try_from(args) {
+        Ok(v) => v,
+        Err(ParseCtxError::InvalidApplication) => {
+            abort!(ident, ParseCtxError::InvalidApplication)
+        }
+        Err(ref error @ ParseCtxError::InvalidCastAttribute(ref inner)) => {
+            abort!(inner.span(), error)
+        }
     };
 
     let insert_stream = insert::generate_insert(&args);
@@ -66,15 +67,29 @@ impl EntityCtx {
     fn pks(&self) -> impl Iterator<Item = &EntityFieldCtx> {
         self.data.iter().filter(|field| field.pk)
     }
+
+    fn columns(&self) -> impl Iterator<Item = String> {
+        self.data.iter().cloned().map(|field| {
+            if let Some(cast) = field.cast {
+                format!(r#"{ident} AS "{ident}!: {cast}""#, ident = field.ident)
+            } else {
+                field.ident.to_string()
+            }
+        })
+    }
 }
 
 impl TryFrom<EntityArgs> for EntityCtx {
-    type Error = ();
+    type Error = ParseCtxError;
 
     fn try_from(value: EntityArgs) -> Result<Self, Self::Error> {
         let mut data = vec![];
 
-        for row in value.data.take_struct().ok_or(())? {
+        for row in value
+            .data
+            .take_struct()
+            .ok_or(ParseCtxError::InvalidApplication)?
+        {
             data.push(row.try_into()?);
         }
 
@@ -96,20 +111,49 @@ struct EntityFieldCtx {
     generated: bool,
     deref: bool,
     default: bool,
+    cast: Option<Ident>,
+}
+
+impl EntityFieldCtx {
+    pub(crate) fn cast(&self) -> proc_macro2::TokenStream {
+        self.cast
+            .clone()
+            .map(|cast| {
+                quote::quote! {
+                    as &#cast
+                }
+            })
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Debug, Error)]
+enum ParseCtxError {
+    #[error("The `Entity` macro can only be applied to a struct with named fields")]
+    InvalidApplication,
+    #[error("The ident path should lead ot a individual identifier")]
+    InvalidCastAttribute(#[source] syn::Error),
 }
 
 impl TryFrom<EntityField> for EntityFieldCtx {
-    type Error = ();
+    type Error = ParseCtxError;
 
     fn try_from(value: EntityField) -> Result<Self, Self::Error> {
+        let cast = value
+            .cast
+            .map(|path| path.require_ident().cloned())
+            .transpose()
+            .map_err(ParseCtxError::InvalidCastAttribute)?;
+
         Ok(Self {
-            ident: value.ident.ok_or(())?,
+            ident: value.ident.ok_or(ParseCtxError::InvalidApplication)?,
             vis: value.vis,
             ty: value.ty,
             pk: value.pk,
             generated: value.generated,
             deref: value.deref,
             default: value.default,
+            cast,
         })
     }
 }
@@ -137,6 +181,7 @@ struct EntityField {
     default: bool,
     #[darling(default)]
     deref: bool,
+    cast: Option<syn::Path>,
 }
 
 #[derive(Debug, Error)]

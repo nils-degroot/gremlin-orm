@@ -38,8 +38,9 @@ pub(crate) fn generate_fetch(args: &EntityCtx) -> TokenStream {
     let table = args.table.clone();
 
     let query = format!(
-        "SELECT * FROM {table} WHERE {query_where}",
+        "SELECT {columns} FROM {table} WHERE {query_where}",
         query_where = query_where.join(" AND "),
+        columns = args.columns().collect::<Vec<_>>().join(", ")
     );
 
     let values_fields = base

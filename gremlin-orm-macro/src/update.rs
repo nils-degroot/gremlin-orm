@@ -65,15 +65,16 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
         .filter(|field| field.pk)
         .cloned()
         .map(|field| {
+            let cast = field.cast();
             let ident = field.ident;
 
             if field.deref {
                 quote::quote! {
-                    self.#ident.as_deref()
+                    self.#ident.as_deref() #cast
                 }
             } else {
                 quote::quote! {
-                    self.#ident
+                    self.#ident #cast
                 }
             }
         })
@@ -84,15 +85,16 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
         .filter(|field| !field.pk)
         .cloned()
         .map(|field| {
+            let cast = field.cast();
             let ident = field.ident;
 
             if field.deref {
                 quote::quote! {
-                    self.#ident.as_deref()
+                    self.#ident.as_deref() #cast
                 }
             } else {
                 quote::quote! {
-                    self.#ident
+                    &self.#ident #cast
                 }
             }
         })
@@ -112,9 +114,10 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
     let table = args.table.clone();
 
     let query = format!(
-        "UPDATE {table} SET {query_set} WHERE {query_where} RETURNING *",
+        "UPDATE {table} SET {query_set} WHERE {query_where} RETURNING {columns}",
         query_where = query_where.join(" AND "),
         query_set = query_set.join(", "),
+        columns = args.columns().collect::<Vec<_>>().join(", ")
     );
 
     let stream = quote::quote! {
