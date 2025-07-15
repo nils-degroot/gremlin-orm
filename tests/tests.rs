@@ -3,7 +3,10 @@ use futures::StreamExt;
 use gremlin_orm::{
     DeletableEntity, Entity, FetchableEntity, InsertableEntity, StreamableEntity, UpdatableEntity,
 };
-use sqlx::{PgPool, prelude::FromRow};
+use sqlx::{
+    PgPool,
+    prelude::{FromRow, Type},
+};
 
 // Generic entity
 #[derive(Debug, Entity, PartialEq, Eq, FromRow)]
@@ -63,6 +66,24 @@ struct Defaultable {
     id: i32,
     #[orm(default)]
     name: String,
+}
+
+// Enums
+#[derive(Debug, Entity, PartialEq, Eq, FromRow)]
+#[orm(table = "public.person")]
+struct Person {
+    #[orm(pk)]
+    name: String,
+    #[orm(cast = Mood)]
+    current_mood: Mood,
+}
+
+#[derive(Debug, PartialEq, Eq, Type)]
+#[sqlx(type_name = "mood", rename_all = "lowercase")]
+enum Mood {
+    Sad,
+    Ok,
+    Happy,
 }
 
 mod insert {
@@ -171,6 +192,20 @@ mod insert {
 
         check!(entity.name == "Some name".to_string());
     }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_insert_an_enum(pool: PgPool) {
+        let entity = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        check!(entity.name == "Human".to_string());
+        check!(entity.current_mood == Mood::Ok);
+    }
 }
 
 mod update {
@@ -235,6 +270,27 @@ mod update {
         check!(artist.name == "Updated".to_string());
         check!(artist.slug == "updated".to_string());
     }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_update_a_enum(pool: PgPool) {
+        let entity = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let mut updatable = UpdatablePerson::from(entity);
+        updatable.current_mood = Mood::Happy;
+        let entity = updatable
+            .update(&pool)
+            .await
+            .expect("Failed to update entity");
+
+        check!(entity.name == "Human".to_string());
+        check!(entity.current_mood == Mood::Happy);
+    }
 }
 
 mod delete {
@@ -285,6 +341,32 @@ mod stream {
             .await;
 
         assert_eq!(artists, vec![artist1, artist2])
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_be_able_to_stream_enums(pool: PgPool) {
+        let person1 = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let person2 = InsertablePerson {
+            name: "Human 2".to_string(),
+            current_mood: Mood::Sad,
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let people = Person::stream(&pool)
+            .map(|result| result.unwrap())
+            .collect::<Vec<_>>()
+            .await;
+
+        assert_eq!(people, vec![person1, person2])
     }
 }
 
@@ -377,5 +459,27 @@ mod fetch {
 
         check!(pk.artist_id == artist.id);
         check!(pk.release_id == release.id);
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_be_able_to_fetch_an_enum(pool: PgPool) {
+        let entity = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let pk = PersonPk { name: entity.name };
+
+        let entity = pk
+            .fetch(&pool)
+            .await
+            .expect("Failed to fetch entity")
+            .expect("Could not find entity");
+
+        check!(pk.name == entity.name);
+        check!(entity.current_mood == Mood::Ok);
     }
 }

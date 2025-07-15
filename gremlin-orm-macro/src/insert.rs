@@ -55,9 +55,17 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
 
     let table = args.table.clone();
 
+    let columns = args
+        .data
+        .iter()
+        .cloned()
+        .map(|field| field.ident.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+
     // When no fields that could be inserted are present, use a simplified reprisentation
     if insertable_fields.is_empty() {
-        let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING *");
+        let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
 
         return quote::quote! {
             #vis struct #ident;
@@ -122,9 +130,10 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
                 #(#optional_field_names)*
 
                 let table = #table;
+                let columns = #columns;
 
                 if fields.is_empty() {
-                    let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING *");
+                    let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
                     ::sqlx::query_as::<_, Self::SourceEntity>(&query).fetch_one(pool).await
                 } else {
                     let placeholders = (1..=fields.len())
@@ -132,7 +141,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
                         .collect::<Vec<_>>();
 
                     let query = format!(
-                        "INSERT INTO {table} ({fields}) VALUES ({placeholders}) RETURNING *",
+                        "INSERT INTO {table} ({fields}) VALUES ({placeholders}) RETURNING {columns}",
                         fields = fields.join(", "),
                         placeholders = placeholders.join(", ")
                     );
@@ -140,6 +149,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
                     let mut query = ::sqlx::query_as::<_, Self::SourceEntity>(&query);
                     #(#static_field_binds)*
                     #(#optional_field_binds)*
+
                     query.fetch_one(pool).await
                 }
             }
