@@ -467,18 +467,33 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "gremlin-orm"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert2",
  "futures",
- "gremlin-orm-macro",
+ "gremlin-orm-macro 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
  "sqlx",
  "tokio",
 ]
 
 [[package]]
 name = "gremlin-orm-macro"
-version = "0.2.0"
+version = "0.2.1"
+dependencies = [
+ "darling",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "gremlin-orm-macro"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd7e5539b32f060db450544eaa4de7679c31b759b6f68b160518a43d82126e0e"
 dependencies = [
  "darling",
  "proc-macro-error2",
