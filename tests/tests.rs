@@ -3,9 +3,11 @@ use futures::StreamExt;
 use gremlin_orm::{
     DeletableEntity, Entity, FetchableEntity, InsertableEntity, StreamableEntity, UpdatableEntity,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::{
     PgPool,
     prelude::{FromRow, Type},
+    types::Json,
 };
 
 // Generic entity
@@ -76,6 +78,22 @@ struct Person {
     name: String,
     #[orm(cast = Mood)]
     current_mood: Mood,
+}
+
+#[derive(Debug, Entity, PartialEq, Eq, FromRow)]
+#[orm(table = "public.some_json_table")]
+struct SomeJsonValue {
+    #[orm(pk, generated)]
+    id: i32,
+    #[orm(cast = "Json<SerializedValue>")]
+    json_value: Json<SerializedValue>,
+    #[orm(cast = "Json<SerializedValue>")]
+    jsonb_value: Json<SerializedValue>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct SerializedValue {
+    content: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Type)]
@@ -481,5 +499,28 @@ mod fetch {
 
         check!(pk.name == entity.name);
         check!(entity.current_mood == Mood::Ok);
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_be_table_to_fetch_json_fields(pool: PgPool) {
+        let entity = InsertableSomeJsonValue {
+            json_value: Json(SerializedValue {
+                content: "Hello".to_string(),
+            }),
+            jsonb_value: Json(SerializedValue {
+                content: "There".to_string(),
+            }),
+        }
+        .insert(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let fetched = SomeJsonValuePk { id: entity.id }
+            .fetch(&pool)
+            .await
+            .expect("Failed to fetch entity")
+            .expect("Could not find entity");
+
+        check!(entity == fetched);
     }
 }

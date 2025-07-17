@@ -3,7 +3,8 @@
 use darling::{FromDeriveInput, FromField, ast::Data, util::Ignored};
 use proc_macro::TokenStream;
 use proc_macro_error2::abort;
-use syn::{DeriveInput, Ident, parse_macro_input};
+use quote::ToTokens;
+use syn::{DeriveInput, Ident, Path, parse_macro_input};
 use thiserror::Error;
 
 mod delete;
@@ -32,9 +33,6 @@ fn generate(args: DeriveInput) -> Result<TokenStream, GeneratorError> {
         Ok(v) => v,
         Err(ParseCtxError::InvalidApplication) => {
             abort!(ident, ParseCtxError::InvalidApplication)
-        }
-        Err(ref error @ ParseCtxError::InvalidCastAttribute(ref inner)) => {
-            abort!(inner.span(), error)
         }
     };
 
@@ -71,7 +69,11 @@ impl EntityCtx {
     fn columns(&self) -> impl Iterator<Item = String> {
         self.data.iter().cloned().map(|field| {
             if let Some(cast) = field.cast {
-                format!(r#"{ident} AS "{ident}!: {cast}""#, ident = field.ident)
+                format!(
+                    r#"{ident} AS "{ident}!: {cast}""#,
+                    ident = field.ident,
+                    cast = cast.to_token_stream()
+                )
             } else {
                 field.ident.to_string()
             }
@@ -111,7 +113,7 @@ struct EntityFieldCtx {
     generated: bool,
     deref: bool,
     default: bool,
-    cast: Option<Ident>,
+    cast: Option<Path>,
 }
 
 impl EntityFieldCtx {
@@ -131,20 +133,12 @@ impl EntityFieldCtx {
 enum ParseCtxError {
     #[error("The `Entity` macro can only be applied to a struct with named fields")]
     InvalidApplication,
-    #[error("The ident path should lead ot a individual identifier")]
-    InvalidCastAttribute(#[source] syn::Error),
 }
 
 impl TryFrom<EntityField> for EntityFieldCtx {
     type Error = ParseCtxError;
 
     fn try_from(value: EntityField) -> Result<Self, Self::Error> {
-        let cast = value
-            .cast
-            .map(|path| path.require_ident().cloned())
-            .transpose()
-            .map_err(ParseCtxError::InvalidCastAttribute)?;
-
         Ok(Self {
             ident: value.ident.ok_or(ParseCtxError::InvalidApplication)?,
             vis: value.vis,
@@ -153,7 +147,7 @@ impl TryFrom<EntityField> for EntityFieldCtx {
             generated: value.generated,
             deref: value.deref,
             default: value.default,
-            cast,
+            cast: value.cast,
         })
     }
 }
