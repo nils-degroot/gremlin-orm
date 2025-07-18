@@ -38,11 +38,11 @@ pub(crate) fn generate_delete(args: &EntityCtx) -> TokenStream {
 
     let stream = quote::quote! {
         impl ::gremlin_orm::DeletableEntity for #ident {
-            async fn delete(&self, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+            async fn delete<'a>(&self, executor: impl ::sqlx::PgExecutor<'a>) -> Result<(), sqlx::Error> {
                 ::sqlx::query!(
                     #query,
                     #(#values_fields),*
-                ).execute(pool).await?;
+                ).execute(executor).await?;
 
                 Ok(())
             }

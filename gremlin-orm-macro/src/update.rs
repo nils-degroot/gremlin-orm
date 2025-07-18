@@ -136,13 +136,13 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
         impl ::gremlin_orm::UpdatableEntity for #ident {
             type SourceEntity = #source_ident;
 
-            async fn update(&self, pool: &::sqlx::PgPool) -> Result<Self::SourceEntity, ::sqlx::Error> {
+            async fn update<'a>(&self, executor: impl ::sqlx::PgExecutor<'a>) -> Result<Self::SourceEntity, ::sqlx::Error> {
                 ::sqlx::query_as!(
                     #source_ident,
                     #query,
                     #(#values_ids),*,
                     #(#values_fields),*
-                ).fetch_one(pool).await
+                ).fetch_one(executor).await
             }
         }
     };

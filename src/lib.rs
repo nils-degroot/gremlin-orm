@@ -67,6 +67,7 @@
 
 pub use futures::Stream;
 pub use gremlin_orm_macro::Entity;
+use sqlx::PgExecutor;
 
 /// Used for inserting values, use either the default or the provided value
 pub enum Defaultable<T> {
@@ -91,9 +92,9 @@ pub trait InsertableEntity {
     /// # Returns
     ///
     /// A future resolving to either the inserted entity or a SQLx error.
-    fn insert(
+    fn insert<'a>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: impl PgExecutor<'a>,
     ) -> impl Future<Output = Result<Self::SourceEntity, sqlx::Error>>;
 }
 
@@ -112,9 +113,9 @@ pub trait FetchableEntity {
     /// # Returns
     ///
     /// A future resolving to either `Some(entity)` if found, `None` if not found, or a SQLx error.
-    fn fetch(
+    fn fetch<'a>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: impl PgExecutor<'a>,
     ) -> impl Future<Output = Result<Option<Self::SourceEntity>, sqlx::Error>>;
 }
 
@@ -130,7 +131,9 @@ pub trait StreamableEntity: Sized {
     /// # Returns
     ///
     /// An async stream of results, each being either the entity or a SQLx error.
-    fn stream(pool: &sqlx::PgPool) -> impl Stream<Item = Result<Self, sqlx::Error>>;
+    fn stream<'a>(
+        executor: impl PgExecutor<'a> + 'a,
+    ) -> impl Stream<Item = Result<Self, sqlx::Error>>;
 }
 
 /// Trait for types that can be updated in the database.
@@ -148,9 +151,9 @@ pub trait UpdatableEntity {
     /// # Returns
     ///
     /// A future resolving to either the updated entity or a SQLx error.
-    fn update(
+    fn update<'a>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: impl PgExecutor<'a>,
     ) -> impl Future<Output = Result<Self::SourceEntity, sqlx::Error>>;
 }
 
@@ -166,5 +169,8 @@ pub trait DeletableEntity {
     /// # Returns
     ///
     /// A future resolving to `()` if successful, or a SQLx error.
-    fn delete(&self, pool: &sqlx::PgPool) -> impl Future<Output = Result<(), sqlx::Error>>;
+    fn delete<'a>(
+        &self,
+        executor: impl PgExecutor<'a>,
+    ) -> impl Future<Output = Result<(), sqlx::Error>>;
 }

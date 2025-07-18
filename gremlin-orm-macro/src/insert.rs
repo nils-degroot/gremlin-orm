@@ -73,12 +73,12 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
             impl ::gremlin_orm::InsertableEntity for #ident {
                 type SourceEntity = #source_ident;
 
-                async fn insert(&self, pool: &::sqlx::PgPool) -> Result<Self::SourceEntity, ::sqlx::Error> {
+                async fn insert<'a>(&self, executor: impl ::sqlx::PgExecutor<'a>) -> Result<Self::SourceEntity, ::sqlx::Error> {
                     ::sqlx::query_as!(
                         #source_ident,
                         #query,
                         #(#query_values),*
-                    ).fetch_one(pool).await
+                    ).fetch_one(executor).await
                 }
             }
         };
@@ -125,7 +125,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
         impl ::gremlin_orm::InsertableEntity for #ident {
             type SourceEntity = #source_ident;
 
-            async fn insert(&self, pool: &::sqlx::PgPool) -> Result<Self::SourceEntity, ::sqlx::Error> {
+            async fn insert<'a>(&self, executor: impl ::sqlx::PgExecutor<'a>) -> Result<Self::SourceEntity, ::sqlx::Error> {
                 let mut fields = vec![#(#static_field_names),*];
                 #(#optional_field_names)*
 
@@ -134,7 +134,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
 
                 if fields.is_empty() {
                     let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
-                    ::sqlx::query_as::<_, Self::SourceEntity>(&query).fetch_one(pool).await
+                    ::sqlx::query_as::<_, Self::SourceEntity>(&query).fetch_one(executor).await
                 } else {
                     let placeholders = (1..=fields.len())
                         .map(|i| format!("${}", i))
@@ -150,7 +150,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
                     #(#static_field_binds)*
                     #(#optional_field_binds)*
 
-                    query.fetch_one(pool).await
+                    query.fetch_one(executor).await
                 }
             }
         }
