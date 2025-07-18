@@ -5,7 +5,7 @@ homepage = "https://github.com/nils-degroot/gremlin-orm"
 repository = "https://github.com/nils-degroot/gremlin-orm"
 readme = "README.md"
 authors = ["Nils de Groot <nils@peeko.nl>"]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 license-file = "LICENSE"
 keywords = ["database"]
@@ -21,7 +21,7 @@ members = [
 [dependencies]
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
 futures = "0.3.31"
-gremlin-orm-macro = "0.2.1"
+gremlin-orm-macro = "0.3.0"
 # gremlin-orm-macro = { path = "./gremlin-orm-macro/" }
 
 [dev-dependencies]

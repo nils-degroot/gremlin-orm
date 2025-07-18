@@ -83,12 +83,12 @@ pub(crate) fn generate_fetch(args: &EntityCtx) -> TokenStream {
         impl ::gremlin_orm::FetchableEntity for #ident {
             type SourceEntity = #source_ident;
 
-            async fn fetch(&self, pool: &::sqlx::PgPool) -> Result<Option<Self::SourceEntity>, ::sqlx::Error> {
+            async fn fetch<'a>(&self, executor: impl ::sqlx::PgExecutor<'a>) -> Result<Option<Self::SourceEntity>, ::sqlx::Error> {
                 ::sqlx::query_as!(
                     #source_ident,
                     #query,
                     #(#values_fields),*
-                ).fetch_optional(pool).await
+                ).fetch_optional(executor).await
             }
         }
     };

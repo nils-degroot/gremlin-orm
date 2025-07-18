@@ -224,6 +224,22 @@ mod insert {
         check!(entity.name == "Human".to_string());
         check!(entity.current_mood == Mood::Ok);
     }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_support_connections(pool: PgPool) {
+        let mut connection = pool.acquire().await.expect("Could not get a connection");
+
+        let entity = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&mut *connection)
+        .await
+        .expect("Failed to insert entity");
+
+        check!(entity.name == "Human".to_string());
+        check!(entity.current_mood == Mood::Ok);
+    }
 }
 
 mod update {
@@ -309,6 +325,29 @@ mod update {
         check!(entity.name == "Human".to_string());
         check!(entity.current_mood == Mood::Happy);
     }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_support_connections(pool: PgPool) {
+        let mut connection = pool.acquire().await.expect("Could not get a connection");
+
+        let entity = InsertablePerson {
+            name: "Human".to_string(),
+            current_mood: Mood::Ok,
+        }
+        .insert(&mut *connection)
+        .await
+        .expect("Failed to insert entity");
+
+        let mut updatable = UpdatablePerson::from(entity);
+        updatable.current_mood = Mood::Happy;
+        let entity = updatable
+            .update(&mut *connection)
+            .await
+            .expect("Failed to update entity");
+
+        check!(entity.name == "Human".to_string());
+        check!(entity.current_mood == Mood::Happy);
+    }
 }
 
 mod delete {
@@ -385,6 +424,32 @@ mod stream {
             .await;
 
         assert_eq!(people, vec![person1, person2])
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_support_connections(pool: PgPool) {
+        let mut connection = pool.acquire().await.expect("Could not get a connection");
+
+        let artist1 = InsertableArtist {
+            name: "Testings 1".to_string(),
+        }
+        .insert(&mut *connection)
+        .await
+        .expect("Failed to insert artist");
+
+        let artist2 = InsertableArtist {
+            name: "Testings 2".to_string(),
+        }
+        .insert(&mut *connection)
+        .await
+        .expect("Failed to insert artist");
+
+        let artists = Artist::stream(&pool)
+            .map(|result| result.unwrap())
+            .collect::<Vec<_>>()
+            .await;
+
+        assert_eq!(artists, vec![artist1, artist2])
     }
 }
 
@@ -522,5 +587,26 @@ mod fetch {
             .expect("Could not find entity");
 
         check!(entity == fetched);
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_support_connections(pool: PgPool) {
+        let mut connection = pool.acquire().await.expect("Could not get a connection");
+
+        let artist = InsertableArtist {
+            name: "Testings".to_string(),
+        }
+        .insert(&mut *connection)
+        .await
+        .expect("Failed to insert artist");
+
+        let artist = ArtistPk { id: artist.id }
+            .fetch(&mut *connection)
+            .await
+            .expect("Failed to fetch artist")
+            .expect("Could not find artist");
+
+        check!(artist.name == "Testings".to_string());
+        check!(artist.slug == "testings".to_string());
     }
 }

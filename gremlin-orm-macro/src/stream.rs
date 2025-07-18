@@ -13,8 +13,8 @@ pub(crate) fn generate_stream(args: &EntityCtx) -> TokenStream {
 
     let stream = quote::quote! {
         impl ::gremlin_orm::StreamableEntity for #ident {
-            fn stream(pool: &::sqlx::PgPool) -> impl ::gremlin_orm::Stream<Item = Result<Self, ::sqlx::Error>> {
-                ::sqlx::query_as!(Self, #query).fetch(pool)
+            fn stream<'a>(executor: impl ::sqlx::PgExecutor<'a> + 'a) -> impl ::gremlin_orm::Stream<Item = Result<Self, ::sqlx::Error>> {
+                ::sqlx::query_as!(Self, #query).fetch::<'_, 'a>(executor)
             }
         }
     };
