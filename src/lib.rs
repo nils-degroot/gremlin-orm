@@ -16,6 +16,17 @@
 //!     #[orm(generated)]
 //!     slug: String,
 //! }
+//!
+//! // Example with soft delete support
+//! #[derive(Entity, sqlx::FromRow)]
+//! #[orm(table = "public.soft_delete", soft_delete = "deleted_at")]
+//! struct SoftDelete {
+//!     #[orm(pk, generated)]
+//!     id: i32,
+//!     value: i32,
+//!     #[orm(default)]
+//!     deleted_at: Option<chrono::NaiveDateTime>,
+//! }
 //! ```
 //!
 //! ## Annotations
@@ -26,6 +37,7 @@
 //! ### Struct-level Annotations
 //!
 //! - `#[orm(table = "schema.table")]`: Specifies the database table for the entity.
+//! - `#[orm(soft_delete = "column_name")]`: Enables soft delete support for the entity. The given column (typically an `Option<chrono::NaiveDateTime>`) will be set to the current timestamp instead of deleting the row. Entities with a non-NULL value in this column are considered deleted and will be excluded from fetch, stream, and update operations.
 //!
 //! ### Field-level Annotations
 //!
@@ -38,32 +50,40 @@
 //! ## Traits Overview
 //!
 //! ### [`InsertableEntity`]
-//!
 //! For types that can be inserted into the database. An "Insertable" struct is generated for
 //! each entity, containing only the fields that should be provided on insert.
 //!
-//! Field annotated with the default annotation are wrappedin [`Defaultable`]. Indicating if the
-//! default value should be used, or the provided one
+//! Fields annotated with the default annotation are wrapped in [`Defaultable`], indicating if the
+//! default value should be used, or the provided one.
 //!
 //! ### [`FetchableEntity`]
 //!
 //! For types that can be fetched by primary key(s) from the database. A "Pk" struct is generated
 //! for each entity, containing only the primary key fields.
 //!
+//! > If the entity uses soft delete, fetch operations will return `None` for rows where the soft delete column is set (i.e., not NULL).
+//!
 //! ### [`StreamableEntity`]
 //!
 //! For types that can be streamed (selected) from the database. This trait is implemented for
 //! the entity struct, allowing you to stream all rows from the table.
+//!
+//! > If the entity uses soft delete, only rows where the soft delete column is NULL will be streamed.
 //!
 //! ### [`UpdatableEntity`]
 //!
 //! For types that can be updated in the database. An "Updatable" struct is generated for each
 //! entity, containing the primary key(s) and updatable fields.
 //!
+//! > Updates will only affect rows that are not soft deleted (i.e., where the soft delete column is NULL).
+//!
 //! ### [`DeletableEntity`]
 //!
 //! For types that can be deleted from the database. This trait is implemented for the entity
 //! struct, allowing you to delete a row by its primary key(s).
+//!
+//! > If the entity uses soft delete, calling `delete` will set the soft delete column to the current timestamp instead of removing the row from the database.
+//!
 
 pub use futures::Stream;
 pub use gremlin_orm_macro::Entity;

@@ -10,6 +10,7 @@ A lightweight, type-safe ORM for PostgreSQL in Rust, built on top of SQLx with d
 - 🐘 **PostgreSQL optimized** - Leverages PostgreSQL-specific features
 - 🔄 **CRUD operations** - Insert, Update, Delete, and Stream entities
 - 🏗️ **Generated fields** - Support for auto-increment IDs and computed columns
+- 🗑️ **Soft deletes** - Mark records as deleted without removing them from the database
 
 See the documentation on [docs.rs](https://docs.rs/gremlin-orm)
 
