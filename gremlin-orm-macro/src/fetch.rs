@@ -19,7 +19,7 @@ pub(crate) fn generate_fetch(args: &EntityCtx) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    let query_where = base
+    let mut query_where = base
         .iter()
         .cloned()
         .enumerate()
@@ -29,6 +29,10 @@ pub(crate) fn generate_fetch(args: &EntityCtx) -> TokenStream {
             format!("{ident} = ${idx}")
         })
         .collect::<Vec<_>>();
+
+    if let Some(soft_delete) = &args.soft_delete {
+        query_where.push(format!("{soft_delete} IS NULL"));
+    }
 
     let vis = args.vis.clone();
 

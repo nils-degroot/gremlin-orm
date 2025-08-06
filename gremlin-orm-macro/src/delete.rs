@@ -24,17 +24,21 @@ pub(crate) fn generate_delete(args: &EntityCtx) -> TokenStream {
         .cloned()
         .map(|field| {
             let ident = field.ident;
-
-            quote::quote! {
-                self.#ident
-            }
+            quote::quote! { self.#ident }
         })
         .collect::<Vec<_>>();
 
-    let query = format!(
-        "DELETE FROM {table} WHERE {query_where}",
-        query_where = query_where.join(" AND "),
-    );
+    let query = if let Some(soft_delete_column) = &args.soft_delete {
+        format!(
+            "UPDATE {table} SET {soft_delete_column} = NOW() WHERE {query_where}",
+            query_where = query_where.join(" AND "),
+        )
+    } else {
+        format!(
+            "DELETE FROM {table} WHERE {query_where}",
+            query_where = query_where.join(" AND "),
+        )
+    };
 
     let stream = quote::quote! {
         impl ::gremlin_orm::DeletableEntity for #ident {

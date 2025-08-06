@@ -59,6 +59,7 @@ struct EntityCtx {
     vis: syn::Visibility,
     data: Vec<EntityFieldCtx>,
     table: String,
+    soft_delete: Option<String>,
 }
 
 impl EntityCtx {
@@ -100,6 +101,7 @@ impl TryFrom<EntityArgs> for EntityCtx {
             vis: value.vis,
             data,
             table: value.table,
+            soft_delete: value.soft_delete,
         })
     }
 }
@@ -159,6 +161,7 @@ struct EntityArgs {
     vis: syn::Visibility,
     data: Data<Ignored, EntityField>,
     table: String,
+    soft_delete: Option<String>,
 }
 
 #[derive(Debug, Clone, FromField)]

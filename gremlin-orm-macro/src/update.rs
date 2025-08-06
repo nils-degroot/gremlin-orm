@@ -7,7 +7,13 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
         .data
         .clone()
         .into_iter()
-        .filter(|field| field.pk || !field.generated)
+        .filter(|field| {
+            (field.pk || !field.generated)
+                && args
+                    .soft_delete
+                    .clone()
+                    .is_none_or(|soft_delete| field.ident != soft_delete)
+        })
         .collect::<Vec<_>>();
 
     let entity_fields = base
@@ -36,7 +42,7 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    let query_where = base
+    let mut query_where = base
         .iter()
         .filter(|field| field.pk)
         .cloned()
@@ -59,6 +65,10 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
             format!("{ident} = ${idx}")
         })
         .collect::<Vec<_>>();
+
+    if let Some(soft_delete) = &args.soft_delete {
+        query_where.push(format!("{soft_delete} IS NULL"));
+    }
 
     let values_ids = base
         .iter()

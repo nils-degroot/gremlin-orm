@@ -1,4 +1,5 @@
 use assert2::check;
+use chrono::NaiveDateTime;
 use futures::StreamExt;
 use gremlin_orm::{
     DeletableEntity, Entity, FetchableEntity, InsertableEntity, StreamableEntity, UpdatableEntity,
@@ -102,6 +103,17 @@ enum Mood {
     Sad,
     Ok,
     Happy,
+}
+
+// Defaultable fields
+#[derive(Debug, Entity, PartialEq, Eq, FromRow)]
+#[orm(table = "public.soft_delete", soft_delete = "deleted_at")]
+struct SoftDelete {
+    #[orm(pk, generated)]
+    id: i32,
+    value: i32,
+    #[orm(default)]
+    deleted_at: Option<NaiveDateTime>,
 }
 
 mod insert {
@@ -348,6 +360,25 @@ mod update {
         check!(entity.name == "Human".to_string());
         check!(entity.current_mood == Mood::Happy);
     }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_return_row_not_found_if_the_entity_is_soft_deleted(pool: PgPool) {
+        let result = sqlx::query!(
+            "INSERT INTO soft_delete (deleted_at, value) VALUES (NOW(), 0) RETURNING id"
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let result = UpdatableSoftDelete {
+            id: result.id,
+            value: 0,
+        }
+        .update(&pool)
+        .await;
+
+        assert2::let_assert!(Err(sqlx::error::Error::RowNotFound) = result);
+    }
 }
 
 mod delete {
@@ -370,6 +401,25 @@ mod delete {
             .expect("Failed to fetch artist");
 
         check!(let None = result);
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_retain_soft_delete_entities_by_setting_deleted_at(pool: PgPool) {
+        let entity = InsertableSoftDelete {
+            value: 0,
+            deleted_at: gremlin_orm::Defaultable::Default,
+        };
+
+        let entity = entity.insert(&pool).await.expect("Failed to insert entity");
+
+        entity.delete(&pool).await.expect("Failed to delete artist");
+
+        let entity = sqlx::query_as!(SoftDelete, "SELECT * FROM soft_delete")
+            .fetch_optional(&pool)
+            .await;
+
+        assert2::let_assert!(Ok(Some(entity)) = entity);
+        assert2::check!(let Some(_) = entity.deleted_at);
     }
 }
 
@@ -450,6 +500,28 @@ mod stream {
             .await;
 
         assert_eq!(artists, vec![artist1, artist2])
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_not_list_soft_deleted_entities(pool: PgPool) {
+        sqlx::query!("INSERT INTO soft_delete (deleted_at, value) VALUES (NULL, 0), (NOW(), 0)")
+            .execute(&pool)
+            .await
+            .expect("Failed to insert entities");
+
+        let entities = SoftDelete::stream(&pool)
+            .map(|result| result.unwrap())
+            .collect::<Vec<_>>()
+            .await;
+
+        assert2::check!(
+            entities
+                == vec![SoftDelete {
+                    id: 1,
+                    value: 0,
+                    deleted_at: None
+                }]
+        );
     }
 }
 
@@ -608,5 +680,19 @@ mod fetch {
 
         check!(artist.name == "Testings".to_string());
         check!(artist.slug == "testings".to_string());
+    }
+
+    #[sqlx::test(fixtures("../resources/data/schema.sql"))]
+    async fn it_should_not_fetch_soft_deleted_entities(pool: PgPool) {
+        let result = sqlx::query!(
+            "INSERT INTO soft_delete (deleted_at, value) VALUES (NOW(), 0) RETURNING id"
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("Failed to insert entity");
+
+        let entity = SoftDeletePk { id: result.id }.fetch(&pool).await;
+
+        assert2::let_assert!(Ok(None) = entity);
     }
 }
