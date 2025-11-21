@@ -78,7 +78,11 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
             let cast = field.cast();
             let ident = field.ident;
 
-            if field.deref {
+            if field.as_ref {
+                quote::quote! {
+                    self.#ident.as_ref() #cast
+                }
+            } else if field.deref {
                 quote::quote! {
                     self.#ident.as_deref() #cast
                 }
@@ -98,7 +102,11 @@ pub(crate) fn generate_update(args: &EntityCtx) -> TokenStream {
             let cast = field.cast();
             let ident = field.ident;
 
-            if field.deref {
+            if field.as_ref {
+                quote::quote! {
+                    self.#ident.as_ref() #cast
+                }
+            } else if field.deref {
                 quote::quote! {
                     self.#ident.as_deref() #cast
                 }

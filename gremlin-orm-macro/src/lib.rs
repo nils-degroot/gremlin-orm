@@ -114,6 +114,7 @@ struct EntityFieldCtx {
     pk: bool,
     generated: bool,
     deref: bool,
+    as_ref: bool,
     default: bool,
     cast: Option<Path>,
 }
@@ -148,6 +149,7 @@ impl TryFrom<EntityField> for EntityFieldCtx {
             pk: value.pk,
             generated: value.generated,
             deref: value.deref,
+            as_ref: value.as_ref,
             default: value.default,
             cast: value.cast,
         })
@@ -178,6 +180,8 @@ struct EntityField {
     default: bool,
     #[darling(default)]
     deref: bool,
+    #[darling(default)]
+    as_ref: bool,
     cast: Option<syn::Path>,
 }
 

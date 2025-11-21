@@ -116,6 +116,18 @@ struct SoftDelete {
     deleted_at: Option<NaiveDateTime>,
 }
 
+// Regression with optional primitive values
+#[derive(Debug, Entity, PartialEq, Eq, FromRow)]
+#[orm(table = "public.optional_primitive")]
+struct OptionalPrimitive {
+    #[orm(pk, generated)]
+    id: i32,
+    #[orm(as_ref)]
+    number: Option<i32>,
+    #[orm(as_ref)]
+    boolean: Option<bool>,
+}
+
 mod insert {
     use gremlin_orm::Defaultable;
 
