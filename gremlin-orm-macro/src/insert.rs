@@ -63,7 +63,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
         .collect::<Vec<_>>()
         .join(", ");
 
-    // When no fields that could be inserted are present, use a simplified reprisentation
+    // When no fields that could be inserted are present, use a simplified representation
     if insertable_fields.is_empty() {
         let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
 
@@ -117,6 +117,8 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
         });
     }
 
+    let empty_fields_query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
+
     let stream = quote::quote! {
         #vis struct #ident {
             #(#insertable_fields),*
@@ -134,7 +136,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
 
                 if fields.is_empty() {
                     let query = format!("INSERT INTO {table} DEFAULT VALUES RETURNING {columns}");
-                    ::sqlx::query_as::<_, Self::SourceEntity>(&query).fetch_one(executor).await
+                    ::sqlx::query_as::<_, Self::SourceEntity>(::sqlx::AssertSqlSafe(query)).fetch_one(executor).await
                 } else {
                     let placeholders = (1..=fields.len())
                         .map(|i| format!("${}", i))
@@ -146,7 +148,7 @@ pub(crate) fn generate_insert(args: &EntityCtx) -> TokenStream {
                         placeholders = placeholders.join(", ")
                     );
 
-                    let mut query = ::sqlx::query_as::<_, Self::SourceEntity>(&query);
+                    let mut query = ::sqlx::query_as::<_, Self::SourceEntity>(::sqlx::AssertSqlSafe(query));
                     #(#static_field_binds)*
                     #(#optional_field_binds)*
 

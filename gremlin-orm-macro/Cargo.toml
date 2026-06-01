@@ -4,12 +4,12 @@ description = "A lightweight, ORM for PostgreSQL, built on top of SQLx."
 homepage = "https://github.com/nils-degroot/gremlin-orm"
 repository = "https://github.com/nils-degroot/gremlin-orm"
 readme = "../README.md"
-authors = ["Nils de Groot <nils@peeko.nl>"]
-version = "0.5.0"
-edition = "2024"
 license-file = "../LICENSE"
-keywords = ["database"]
-categories = ["database"]
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
 
 [lib]
 proc-macro = true

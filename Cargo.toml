@@ -4,28 +4,34 @@ description = "A lightweight, ORM for PostgreSQL, built on top of SQLx."
 homepage = "https://github.com/nils-degroot/gremlin-orm"
 repository = "https://github.com/nils-degroot/gremlin-orm"
 readme = "README.md"
-authors = ["Nils de Groot <nils@peeko.nl>"]
-version = "0.5.0"
-edition = "2024"
 license-file = "LICENSE"
-keywords = ["database"]
-categories = ["database"]
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
 
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
 	".",
 	"./gremlin-orm-macro/"
 ]
 
+[workspace.package]
+version = "0.5.0"
+edition = "2024"
+keywords = ["database"]
+categories = ["database"]
+authors = ["Nils de Groot <nils@peeko.nl>"]
+
 [dependencies]
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
+sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio"] }
 futures = "0.3.31"
-gremlin-orm-macro = "0.5.0"
-# gremlin-orm-macro = { path = "./gremlin-orm-macro/" }
+gremlin-orm-macro = { version = "0.5.0", path = "./gremlin-orm-macro" }
 
 [dev-dependencies]
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
+sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono"] }
 tokio = { version = "1.46.1", features = ["full"] }
 assert2 = "0.3.16"
 serde = "1.0.219"
