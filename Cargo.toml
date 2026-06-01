@@ -19,7 +19,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 keywords = ["database"]
 categories = ["database"]
@@ -28,7 +28,7 @@ authors = ["Nils de Groot <nils@peeko.nl>"]
 [dependencies]
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio"] }
 futures = "0.3.31"
-gremlin-orm-macro = { version = "0.5.0", path = "./gremlin-orm-macro" }
+gremlin-orm-macro = { version = "0.6.0", path = "./gremlin-orm-macro" }
 
 [dev-dependencies]
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono"] }
